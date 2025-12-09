@@ -1,0 +1,21 @@
+[project]
+name = "find-your-okved-game"
+version = "0.1.0"
+description = "Test Task"
+readme = "README.md"
+requires-python = ">=3.12.7"
+dependencies = [
+    "pydantic>=2.12.4",
+    "pyhocon>=0.3.61",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.0",
+    "pre-commit>=4.5.0",
+    "ruff>=0.14.8",
+]
+tests = [
+    "httpx>=0.28.1",
+    "pytest>=9.0.2",
+]
