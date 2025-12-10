@@ -6,6 +6,9 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
+class CantSaveJsonError(Exception): ...
+
+
 class CacheRepository:
     def __init__(self, etag_cache_path: str, okved_json_cache_path: str):
         self._etag_cache_path = etag_cache_path
@@ -30,10 +33,23 @@ class CacheRepository:
         return saved_etag
 
     def save_okved_json_etag_to_cache(self, etag: str) -> None:
-        pass
+        file_path = Path(self._etag_cache_path)
+
+        data = {'etag': etag}
+
+        _try_save_json(file_path=file_path, data=data)
 
     def save_okved_json_to_cache(self) -> None:
         pass
 
     def get_okved_json_from_cache(self) -> dict:
         pass
+
+
+def _try_save_json(file_path: Path, data: dict[str, str]) -> None:
+    try:
+        with file_path.open('w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as exc:  # TODO: уточнить конкретный тип возможного исключения
+        logger.error(exc)
+        raise CantSaveJsonError()
