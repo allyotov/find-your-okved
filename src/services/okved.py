@@ -47,15 +47,15 @@ class OkvedService:
     def get_okved(self, raw_phone_number: str) -> Tuple[str | bool, dict | bool, str]:
         error_message = ''
         normalized_phone, error_message = try_normalize_phone(raw_phone_number)
-        if not normalize_phone:
-            return normalized_phone, False, error_message
+        if not normalized_phone:
+            return normalized_phone, None, error_message
         okved_code = self.get_okved_by_phone(phone=normalized_phone), error_message
         return normalized_phone, okved_code, error_message
 
     def get_okved_by_phone(self, phone: str) -> dict | None:
         okved_codes = self._get_actual_okved_codes()
         if not okved_codes:
-            return False
+            return None
         return find_matching_okved_code(phone=phone, okved_codes=okved_codes)
 
     def _get_actual_okved_codes(self) -> list[dict] | None:
@@ -176,7 +176,8 @@ def find_matching_okved_code(phone: str, okved_codes: list[dict]) -> dict[str, s
     while nodes:
         next_nodes = []
         for node in nodes:
-            next_nodes.extend(node['items'])
+            if 'items' in node:
+                next_nodes.extend(node['items'])
             code_as_is = node['code']
             code_as_digits = _get_digits_of_code_if_correct(code_as_is)
             matches_count, complete_match = _compare_code_with_phone(code=code_as_digits, phone=phone)
