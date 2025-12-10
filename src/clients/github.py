@@ -5,7 +5,7 @@ import logging
 from httpx import Client as httpx_client
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 OKVED_JSON_GITHUB_URL_TEMPLATE = 'https://api.github.com/repos/{owner}/{repo}/contents/{file_path}'
