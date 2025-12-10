@@ -44,8 +44,23 @@ class CacheRepository:
 
         _try_save_json(file_path=file_path, data=new_okved_codes)
 
-    def get_okved_code_from_cache(self) -> list:
-        pass
+    def get_okved_codes_from_cache(self) -> list[dict] | None:
+        cache = Path(self._okved_json_cache_path)
+        okved_codes = None
+        if not cache.exists():
+            return okved_codes
+
+        try:
+            okved_codes = json.loads(cache.read_text())
+        except json.JSONDecodeError as exc:
+            logger.warning(exc)
+            return okved_codes
+
+        if type(okved_codes) is not list:
+            logger.warning('Wrong format of okved file cache')
+            okved_codes = None
+
+        return okved_codes
 
 
 def _try_save_json(file_path: Path, data: dict[str, str]) -> None:
