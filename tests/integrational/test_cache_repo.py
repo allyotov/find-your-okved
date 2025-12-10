@@ -59,6 +59,22 @@ def wrong_key_etag_json_file():
         file_path.unlink()
 
 
+@pytest.fixture
+def ocved_codes():
+    return [
+        {
+            'code': 'Раздел A',
+            'name': 'Сельское, лесное хозяйство, охота, рыболовство и рыбоводство',
+            'items': [],
+        },
+        {
+            'code': 'Раздел Б',
+            'name': '...',
+            'items': [],
+        },
+    ]
+
+
 def test_load_etag__file_exists__returns_etag(cache_repo, correct_etag_json_file):
     assert cache_repo.get_okved_json_etag_from_cache() == TEST_CACHED_ETAG
 
@@ -98,3 +114,35 @@ def test_save_etag__valid_resulting_file(cache_repo):
 
     if file_path.exists():
         file_path.unlink()
+
+
+# TODO: написать тесты, отражающие неуспешные кейсы сохранения etag в файл: ошибка сохранения в файл,
+# неправильный формат переданных данных;
+
+
+def test_save_okved_codes__resulting_file_exists(cache_repo, ocved_codes):
+    cache_repo.save_okved_codes_to_cache(new_okved_codes=ocved_codes)
+
+    file_path = Path(TEST_OKVED_JSON_PATH)
+
+    assert file_path.exists()
+
+    if file_path.exists():
+        file_path.unlink()
+
+
+def test_save_okved_codes__valid_resulting_file(cache_repo, ocved_codes):
+    cache_repo.save_okved_codes_to_cache(new_okved_codes=ocved_codes)
+
+    file_path = Path(TEST_OKVED_JSON_PATH)
+
+    cache_data = json.loads(file_path.read_text())
+
+    assert cache_data == ocved_codes
+
+    if file_path.exists():
+        file_path.unlink()
+
+
+# TODO: написать тесты, отражающие неуспешные кейсы сохранения ОКВЭД в файл: ошибка сохранения в файл,
+# неправильный формат переданных данных;
