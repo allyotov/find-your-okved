@@ -10,7 +10,7 @@ TEST_OKVED_JSON_PATH = 'test_okved.json'
 TEST_CACHED_ETAG = 'test_etag_str'
 
 
-@pytest.fixture()
+@pytest.fixture
 def cache_repo():
     return CacheRepository(etag_cache_path=TEST_ETAG_CACHE_PATH, okved_json_cache_path=TEST_OKVED_JSON_PATH)
 
@@ -73,3 +73,28 @@ def test_load_etag__invalid_file__returns_none(cache_repo, invalid_etag_json_fil
 
 def test_load_etag__no_etag_key__returns_none(cache_repo, wrong_key_etag_json_file):
     assert cache_repo.get_okved_json_etag_from_cache() is None
+
+
+def test_save_etag__resulting_file_exists(cache_repo):
+    cache_repo.save_okved_json_etag_to_cache(etag=TEST_CACHED_ETAG)
+
+    file_path = Path(TEST_ETAG_CACHE_PATH)
+
+    assert file_path.exists()
+
+    if file_path.exists():
+        file_path.unlink()
+
+
+def test_save_etag__valid_resulting_file(cache_repo):
+    cache_repo.save_okved_json_etag_to_cache(etag=TEST_CACHED_ETAG)
+
+    file_path = Path(TEST_ETAG_CACHE_PATH)
+
+    cache_data = json.loads(file_path.read_text())
+
+    assert 'etag' in cache_data
+    assert type(cache_data['etag']) is str
+
+    if file_path.exists():
+        file_path.unlink()
