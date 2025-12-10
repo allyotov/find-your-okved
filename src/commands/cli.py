@@ -2,7 +2,7 @@ import logging
 
 import typer
 
-from src.services.okved import OkvedService
+from src.deps import get_okved_service
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -39,7 +39,7 @@ OKVED_LOAD_FAILED_MSG = """Увы. Нам не удалось загрузить
 def main(phone: str = typer.Argument('+79000000000')):
     typer.echo(GREETINGS_TEMPLATE.format(phone=phone))
 
-    okved_service = OkvedService()
+    okved_service = get_okved_service()
 
     normalized_phone, matching_okved_data, normalization_error = okved_service.get_okved(raw_phone_number=phone)
     resulting_message = form_resulting_message(normalized_phone, matching_okved_data, normalization_error)
