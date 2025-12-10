@@ -52,3 +52,7 @@ def _get_encoded_bytes_from_list(given_list: list[dict]) -> str:
     okveds_json_string = json.dumps(given_list)
     bytes_string = okveds_json_string.encode('utf-8')
     return base64.b64encode(bytes_string).decode('ascii')
+
+
+# TODO: добавить тесты, проверяющие случаи, когда методы .get() и .head() httpx.Client завершаются неудачно, поднимая
+# исключения.
