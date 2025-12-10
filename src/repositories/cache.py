@@ -39,10 +39,12 @@ class CacheRepository:
 
         _try_save_json(file_path=file_path, data=data)
 
-    def save_okved_json_to_cache(self) -> None:
-        pass
+    def save_okved_codes_to_cache(self, new_okved_codes: list) -> None:
+        file_path = Path(self._okved_json_cache_path)
 
-    def get_okved_json_from_cache(self) -> dict:
+        _try_save_json(file_path=file_path, data=new_okved_codes)
+
+    def get_okved_code_from_cache(self) -> list:
         pass
 
 
