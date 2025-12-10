@@ -9,7 +9,19 @@ test:
 
 
 test.github_client:
-	python -m pytest tests/integrational/test_github_client.py -vvv
+	python -m pytest tests/unit/clients/test_github_client.py -vvv
+
+
+test.github_client.get_new_etag:
+	python -m pytest tests/unit/clients/test_github_client.py::test_get_new_okved_json_etag
+
+
+test.github_client.check_etag:
+	python -m pytest tests/unit/clients/test_github_client.py::test_check_actual_okved_json_etag
+
+
+test.github_client.get_okveds:
+	python -m pytest tests/unit/clients/test_github_client.py::test_get_new_okved_json
 
 
 test.cache_repo:
