@@ -52,7 +52,7 @@ class OkvedService:
         okved_code = self.get_okved_by_phone(phone=normalized_phone), error_message
         return normalized_phone, okved_code, error_message
 
-    def get_okved_by_phone(self, phone: str) -> str | False:
+    def get_okved_by_phone(self, phone: str) -> dict | None:
         okved_codes = self._get_actual_okved_codes()
         if not okved_codes:
             return False
@@ -152,6 +152,9 @@ def _validate_country_code(digits: str, plus_before_first_digit) -> None:
     if country_code != '7' and plus_before_first_digit:
         raise WrongCountryCodeError(country_code=country_code, plus=True)
 
+    if country_code != '8' and not plus_before_first_digit:
+        raise WrongCountryCodeError(country_code=country_code, plus=False)
+
 
 def _validate_second_digit(digits: str) -> None:
     second_digit = digits[1]
@@ -181,6 +184,7 @@ def find_matching_okved_code(phone: str, okved_codes: list[dict]) -> dict[str, s
             code_as_is = node['code']
             code_as_digits = _get_digits_of_code_if_correct(code_as_is)
             matches_count, complete_match = _compare_code_with_phone(code=code_as_digits, phone=phone)
+
             if complete_match and matches_count > complete_match_max_len:
                 complete_match_max_len = matches_count
                 longest_complete_match_code = code_as_is
@@ -189,6 +193,8 @@ def find_matching_okved_code(phone: str, okved_codes: list[dict]) -> dict[str, s
                 incomplete_match_max_len = matches_count
                 longest_incomplete_match_code = code_as_is
                 longest_icm_code_title = node['name']
+
+        nodes = next_nodes
 
     if complete_match_max_len > 0:
         return {
@@ -224,7 +230,7 @@ def _compare_code_with_phone(code: str, phone: str) -> Tuple[int, bool]:
 
     code_len = len(code)
     code_i = code_len - 1
-    phone_i = PHONE_NUMBER_LEN - 1
+    phone_i = PHONE_NUMBER_LEN  # учитываем, что в начале номера всегда +
 
     while code_i >= 0 and phone_i >= 0:
         if code[code_i] == phone[phone_i]:
