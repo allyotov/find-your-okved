@@ -3,6 +3,9 @@ import pytest
 from src.clients.github import GithubClient
 from src.settings import GITHUB_SETTINGS
 
+# TODO: необходимо написать фикстуру, которая будет возвращать mock httpx клиента github API, поскольку мы не должны
+# проверять в своих модульных тестах работу стороннего API;
+
 
 @pytest.fixture
 def github_client() -> GithubClient:
