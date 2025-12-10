@@ -163,15 +163,11 @@ def _validate_second_digit(digits: str) -> None:
 
 
 def find_matching_okved_code(phone: str, okved_codes: list[dict]) -> dict[str, str | int | bool]:
-    # TODO: можно обойтись одним набором таких переменных:
-    complete_match_max_len = 0
-    longest_complete_match_code = ''
-    longest_cm_code_title = ''
+    max_match_len = -1  # В случае, если совпадений будет не найдено, возвратится первый непустой ОКВЭД;
+    longest_match_code = ''
+    longest_match_code_title = ''
 
-    # В случае, если совпадений нет, будет выбран первый ОКВЭД ненулевой длины
-    incomplete_match_max_len = -1
-    longest_incomplete_match_code = ''
-    longest_icm_code_title = ''
+    complete_match_found = False
 
     nodes = []
     for section in okved_codes:
@@ -185,30 +181,28 @@ def find_matching_okved_code(phone: str, okved_codes: list[dict]) -> dict[str, s
             code_as_digits = _get_digits_of_code_if_correct(code_as_is)
             matches_count, complete_match = _compare_code_with_phone(code=code_as_digits, phone=phone)
 
-            if complete_match and matches_count > complete_match_max_len:
-                complete_match_max_len = matches_count
-                longest_complete_match_code = code_as_is
-                longest_cm_code_title = node['name']
-            elif matches_count > incomplete_match_max_len:
-                incomplete_match_max_len = matches_count
-                longest_incomplete_match_code = code_as_is
-                longest_icm_code_title = node['name']
+            if complete_match_found and not complete_match:
+                continue
+            elif not complete_match_found and complete_match:
+                max_match_len = matches_count
+                longest_match_code = code_as_is
+                longest_match_code_title = node['name']
+
+                complete_match_found = True
+
+            elif (not complete_match_found and not complete_match) or (complete_match_found and complete_match):
+                if matches_count > max_match_len:
+                    max_match_len = matches_count
+                    longest_match_code = code_as_is
+                    longest_match_code_title = node['name']
 
         nodes = next_nodes
 
-    if complete_match_max_len > 0:
-        return {
-            'okved': longest_complete_match_code,
-            'matches_count': complete_match_max_len,
-            'complete_match': True,
-            'title': longest_cm_code_title,
-        }
-
     return {
-        'okved': longest_incomplete_match_code,
-        'matches_count': incomplete_match_max_len,
-        'complete_match': False,
-        'title': longest_icm_code_title,
+        'okved': longest_match_code,
+        'matches_count': max_match_len,
+        'complete_match': complete_match_found,
+        'title': longest_match_code_title,
     }
 
 
