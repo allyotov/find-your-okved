@@ -177,3 +177,25 @@ def test_find_matching_okved_code__no_matches__return_first_not_empty_code():
         'complete_match': False,
         'title': 'Разведение гуппи Эндлера',
     }
+
+
+def test_find_matching_okved_code__successfully_processes_nodes_with_no_nested_items():
+    phone = '+79001234567'
+
+    okved_codes = [
+        {
+            'code': 'Раздел 1',
+            'items': [{'code': '81.23.45.60', 'name': 'Разведение гуппи Эндлера'}],
+        },
+        {
+            'code': 'Раздел 2',
+            'items': [
+                {
+                    'code': '2.60',
+                    'name': 'Разведение сомов анциструсов',
+                },
+            ],
+        },
+    ]
+    result = find_matching_okved_code(phone=phone, okved_codes=okved_codes)
+    assert result
