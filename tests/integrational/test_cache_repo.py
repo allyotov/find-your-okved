@@ -60,7 +60,7 @@ def wrong_key_etag_json_file():
 
 
 @pytest.fixture
-def ocved_codes():
+def okved_codes():
     return [
         {
             'code': 'Раздел A',
@@ -73,6 +73,49 @@ def ocved_codes():
             'items': [],
         },
     ]
+
+
+@pytest.fixture
+def correct_okved_json_file(okved_codes):
+    file_path = Path(TEST_OKVED_JSON_PATH)
+
+    with file_path.open('w', encoding='utf-8') as f:
+        json.dump(okved_codes, f, ensure_ascii=False, indent=2)
+    yield file_path
+
+    if file_path.exists():
+        file_path.unlink()
+
+
+@pytest.fixture
+def invalid_okved_json_file():
+    file_path = Path(TEST_OKVED_JSON_PATH)
+
+    # Записываем заведомо некорректный JSON
+    invalid_content = """
+        [
+    """  # Отсутствует содержимое после открывающей квадратной скобки
+
+    with file_path.open('w', encoding='utf-8') as f:
+        f.write(invalid_content)
+
+    yield file_path
+
+    if file_path.exists():
+        file_path.unlink()
+
+
+@pytest.fixture
+def no_list_in_okved_json_file():
+    file_path = Path(TEST_OKVED_JSON_PATH)
+
+    data = {'_some_key_': {'_some_nested_key_': '_some_item_value_'}}
+    with file_path.open('w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    yield file_path
+
+    if file_path.exists():
+        file_path.unlink()
 
 
 def test_load_etag__file_exists__returns_etag(cache_repo, correct_etag_json_file):
@@ -120,8 +163,8 @@ def test_save_etag__valid_resulting_file(cache_repo):
 # неправильный формат переданных данных;
 
 
-def test_save_okved_codes__resulting_file_exists(cache_repo, ocved_codes):
-    cache_repo.save_okved_codes_to_cache(new_okved_codes=ocved_codes)
+def test_save_okved_codes__resulting_file_exists(cache_repo, okved_codes):
+    cache_repo.save_okved_codes_to_cache(new_okved_codes=okved_codes)
 
     file_path = Path(TEST_OKVED_JSON_PATH)
 
@@ -131,14 +174,14 @@ def test_save_okved_codes__resulting_file_exists(cache_repo, ocved_codes):
         file_path.unlink()
 
 
-def test_save_okved_codes__valid_resulting_file(cache_repo, ocved_codes):
-    cache_repo.save_okved_codes_to_cache(new_okved_codes=ocved_codes)
+def test_save_okved_codes__valid_resulting_file(cache_repo, okved_codes):
+    cache_repo.save_okved_codes_to_cache(new_okved_codes=okved_codes)
 
     file_path = Path(TEST_OKVED_JSON_PATH)
 
     cache_data = json.loads(file_path.read_text())
 
-    assert cache_data == ocved_codes
+    assert cache_data == okved_codes
 
     if file_path.exists():
         file_path.unlink()
@@ -146,3 +189,19 @@ def test_save_okved_codes__valid_resulting_file(cache_repo, ocved_codes):
 
 # TODO: написать тесты, отражающие неуспешные кейсы сохранения ОКВЭД в файл: ошибка сохранения в файл,
 # неправильный формат переданных данных;
+
+
+def test_load_okved_codes__file_exists__returns_etag(cache_repo, correct_okved_json_file, okved_codes):
+    assert cache_repo.get_okved_codes_from_cache() == okved_codes
+
+
+def test_load_okved_codes__file_doesnt_exists__returns_none(cache_repo):
+    assert cache_repo.get_okved_codes_from_cache() is None
+
+
+def test_load_okved_codes__invalid_file__returns_none(cache_repo, invalid_okved_json_file):
+    assert cache_repo.get_okved_codes_from_cache() is None
+
+
+def test_load_okved_codes__no_list_in_content__returns_none(cache_repo, no_list_in_okved_json_file):
+    assert cache_repo.get_okved_codes_from_cache() is None
