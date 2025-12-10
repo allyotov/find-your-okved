@@ -160,12 +160,15 @@ def _validate_second_digit(digits: str) -> None:
 
 
 def find_matching_okved_code(phone: str, okved_codes: list[dict]) -> dict[str, str | int | bool]:
+    # TODO: можно обойтись одним набором таких переменных:
     complete_match_max_len = 0
     longest_complete_match_code = ''
+    longest_cm_code_title = ''
 
     # В случае, если совпадений нет, будет выбран первый ОКВЭД ненулевой длины
     incomplete_match_max_len = -1
     longest_incomplete_match_code = ''
+    longest_icm_code_title = ''
 
     nodes = []
     for section in okved_codes:
@@ -181,21 +184,25 @@ def find_matching_okved_code(phone: str, okved_codes: list[dict]) -> dict[str, s
             if complete_match and matches_count > complete_match_max_len:
                 complete_match_max_len = matches_count
                 longest_complete_match_code = code_as_is
+                longest_cm_code_title = node['name']
             elif matches_count > incomplete_match_max_len:
                 incomplete_match_max_len = matches_count
                 longest_incomplete_match_code = code_as_is
+                longest_icm_code_title = node['name']
 
     if complete_match_max_len > 0:
         return {
             'okved': longest_complete_match_code,
             'matches_count': complete_match_max_len,
             'complete_match': True,
+            'title': longest_cm_code_title,
         }
 
     return {
         'okved': longest_incomplete_match_code,
         'matches_count': incomplete_match_max_len,
         'complete_match': False,
+        'title': longest_icm_code_title,
     }
 
 
