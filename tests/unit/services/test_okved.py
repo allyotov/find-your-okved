@@ -5,6 +5,7 @@ from src.services.okved import (
     WrongCountryCodeError,
     WrongDigitsNumberError,
     WrongSecondDigitError,
+    find_matching_okved_code,
     normalize_phone,
 )
 
@@ -58,11 +59,21 @@ def test_normalize_phone__wrong_digits_number__raises_corresponding_error(input_
         '+19001234567',
         '+29001234567',
         '+89001234567',
+    ],
+)
+def test_normalize_phone__plus_not_7__raises_wrong_country_code(input_sequence):
+    with pytest.raises(WrongCountryCodeError):
+        normalize_phone(sequence=input_sequence)
+
+
+@pytest.mark.parametrize(
+    'input_sequence',
+    [
         '99001234567',
         '79001234567',  # Cчитаем, что если перед первой цифрой в строке нет плюса, значит, первой цифрой должна быть 8.
     ],
 )
-def test_normalize_phone__wrong_country_code__raises_corresponding_error(input_sequence):
+def test_normalize_phone__no_plus_not_8_raises_wrong_country_code(input_sequence):
     with pytest.raises(WrongCountryCodeError):
         normalize_phone(sequence=input_sequence)
 
@@ -79,3 +90,90 @@ def test_normalize_phone__wrong_country_code__raises_corresponding_error(input_s
 def test_normalize_phone__wrong_second_digit__raises_corresponding_error(input_sequence):
     with pytest.raises(WrongSecondDigitError):
         normalize_phone(sequence=input_sequence)
+
+
+def test_find_matching_okved_code__prefer_complete_match():
+    phone = '+79001234567'
+
+    okved_codes = [
+        {
+            'code': 'Раздел 1',
+            'items': [{'code': '81.23.45.67', 'name': 'Разведение гуппи Эндлера', 'items': []}],
+        },
+        {
+            'code': 'Раздел 2',
+            'items': [
+                {
+                    'code': '5.67',
+                    'name': 'Разведение сомов анциструсов',
+                    'items': [],
+                },
+            ],
+        },
+    ]
+
+    matching_okved = find_matching_okved_code(phone=phone, okved_codes=okved_codes)
+    assert matching_okved == {
+        'okved': '5.67',
+        'matches_count': 3,
+        'complete_match': True,
+        'title': 'Разведение сомов анциструсов',
+    }
+
+
+def test_find_matching_okved_code__no_complete_matches__prefer_longest_incomplete():
+    phone = '+79001234567'
+
+    okved_codes = [
+        {
+            'code': 'Раздел 1',
+            'items': [{'code': '81.23.45.67', 'name': 'Разведение гуппи Эндлера', 'items': []}],
+        },
+        {
+            'code': 'Раздел 2',
+            'items': [
+                {
+                    'code': '2.67',
+                    'name': 'Разведение сомов анциструсов',
+                    'items': [],
+                },
+            ],
+        },
+    ]
+
+    matching_okved = find_matching_okved_code(phone=phone, okved_codes=okved_codes)
+    assert matching_okved == {
+        'okved': '81.23.45.67',
+        'matches_count': 7,
+        'complete_match': False,
+        'title': 'Разведение гуппи Эндлера',
+    }
+
+
+def test_find_matching_okved_code__no_matches__return_first_not_empty_code():
+    phone = '+79001234567'
+
+    okved_codes = [
+        {
+            'code': 'Раздел 1',
+            'items': [{'code': '81.23.45.60', 'name': 'Разведение гуппи Эндлера', 'items': []}],
+        },
+        {
+            'code': 'Раздел 2',
+            'items': [
+                {
+                    'code': '2.60',
+                    'name': 'Разведение сомов анциструсов',
+                    'items': [],
+                },
+            ],
+        },
+    ]
+
+    matching_okved = find_matching_okved_code(phone=phone, okved_codes=okved_codes)
+    assert matching_okved == {
+        'okved': '81.23.45.60',
+        'matches_count': 0,
+        'complete_match': False,
+        'title': 'Разведение гуппи Эндлера',
+    }
