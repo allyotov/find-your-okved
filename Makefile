@@ -19,3 +19,7 @@ test.okved_service:
 
 test.view:
 	python -m pytest tests/unit/views/test_form_resulting_message.py
+
+
+test.prefer_complete_merge:
+	python -m pytest tests/unit/services/test_okved.py::test_find_matching_okved_code__prefer_complete_match
