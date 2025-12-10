@@ -1,5 +1,10 @@
 from typing import Tuple
 
+from src.clients.github import GithubClient
+from src.repositories.cache import CacheRepository
+
+PHONE_NUMBER_LEN = 11
+
 
 class PhoneNumberFormatError(ValueError): ...
 
@@ -35,18 +40,37 @@ class EmptyPhoneNumberError(PhoneNumberFormatError):
 
 
 class OkvedService:
-    def __init__(self):
-        pass
+    def __init__(self, github_client: GithubClient, cache_repo: CacheRepository):
+        self._github_client = github_client
+        self._cache_repo = cache_repo
 
-    def get_okved(self, raw_phone_number: str) -> Tuple[str | bool, str]:
+    def get_okved(self, raw_phone_number: str) -> Tuple[str | bool, dict | bool, str]:
         error_message = ''
         normalized_phone, error_message = try_normalize_phone(raw_phone_number)
         if not normalize_phone:
-            return normalized_phone, error_message
-        return self.get_okved_by_phone(phone=normalized_phone), error_message
+            return normalized_phone, False, error_message
+        okved_code = self.get_okved_by_phone(phone=normalized_phone), error_message
+        return normalized_phone, okved_code, error_message
 
-    def get_okved_by_phone(self, phone: str) -> str:
-        return '0.0.0.0'
+    def get_okved_by_phone(self, phone: str) -> str | False:
+        okved_codes = self._get_actual_okved_codes()
+        if not okved_codes:
+            return False
+        return find_matching_okved_code(phone=phone, okved_codes=okved_codes)
+
+    def _get_actual_okved_codes(self) -> list[dict] | None:
+        cached_json_etag = self._cache_repo.get_okved_json_etag_from_cache()
+        new_etag = self._github_client.check_okved_json_etag(cached_etag=cached_json_etag)
+
+        new_okved_codes = None
+        if new_etag:
+            new_okved_codes = self._github_client.load_okved_json()
+
+        if new_okved_codes:
+            self._cache_repo.save_okved_codes_to_cache(new_okved_codes=new_okved_codes)
+            return new_okved_codes
+
+        return self._cache_repo.get_okved_codes_from_cache()
 
 
 def try_normalize_phone(raw_phone_number: str):
@@ -59,7 +83,7 @@ def try_normalize_phone(raw_phone_number: str):
     except WrongDigitsNumberError as dig_number_error:
         error_message = 'В данном телефонном номере неправильное число цифр ({actual} вместо {needed})'.format(
             actual=dig_number_error.digits_number,
-            needed=11,
+            needed=PHONE_NUMBER_LEN,
         )
     except WrongCountryCodeError as country_code_error:
         error_message = 'В данном телефонном номере неправильный код страны ({actual} вместо +7 или 8)'.format(
@@ -119,7 +143,7 @@ def _validate_phone_not_empty(sequence: str) -> None:
 
 def _validate_digits_number(digits: str) -> None:
     digits_number = len(digits)
-    if digits_number != 11:
+    if digits_number != PHONE_NUMBER_LEN:
         raise WrongDigitsNumberError(digits_number=digits_number)
 
 
@@ -133,3 +157,74 @@ def _validate_second_digit(digits: str) -> None:
     second_digit = digits[1]
     if second_digit != '9':
         raise WrongSecondDigitError(second_digit=second_digit)
+
+
+def find_matching_okved_code(phone: str, okved_codes: list[dict]) -> dict[str, str | int | bool]:
+    complete_match_max_len = 0
+    longest_complete_match_code = ''
+
+    # В случае, если совпадений нет, будет выбран первый ОКВЭД ненулевой длины
+    incomplete_match_max_len = -1
+    longest_incomplete_match_code = ''
+
+    nodes = []
+    for section in okved_codes:
+        nodes.extend(section['items'])
+
+    while nodes:
+        next_nodes = []
+        for node in nodes:
+            next_nodes.extend(node['items'])
+            code_as_is = node['code']
+            code_as_digits = _get_digits_of_code_if_correct(code_as_is)
+            matches_count, complete_match = _compare_code_with_phone(code=code_as_digits, phone=phone)
+            if complete_match and matches_count > complete_match_max_len:
+                complete_match_max_len = matches_count
+                longest_complete_match_code = code_as_is
+            elif matches_count > incomplete_match_max_len:
+                incomplete_match_max_len = matches_count
+                longest_incomplete_match_code = code_as_is
+
+    if complete_match_max_len > 0:
+        return {
+            'okved': longest_complete_match_code,
+            'matches_count': complete_match_max_len,
+            'complete_match': True,
+        }
+
+    return {
+        'okved': longest_incomplete_match_code,
+        'matches_count': incomplete_match_max_len,
+        'complete_match': False,
+    }
+
+
+def _get_digits_of_code_if_correct(okved_code: str) -> str:
+    digits = []
+    for char in okved_code:
+        if char.isalpha():
+            return ''
+        if char.isdigit():
+            digits.append(char)
+    return ''.join(digits)
+
+
+def _compare_code_with_phone(code: str, phone: str) -> Tuple[int, bool]:
+    if not code:
+        return 0, False
+
+    trailing_matches_count = 0
+
+    code_len = len(code)
+    code_i = code_len - 1
+    phone_i = PHONE_NUMBER_LEN - 1
+
+    while code_i >= 0 and phone_i >= 0:
+        if code[code_i] == phone[phone_i]:
+            trailing_matches_count += 1
+            code_i -= 1
+            phone_i -= 1
+        else:
+            break
+    complete_match = code_len == trailing_matches_count
+    return trailing_matches_count, complete_match
