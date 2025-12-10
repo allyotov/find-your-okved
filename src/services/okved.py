@@ -1,7 +1,11 @@
+import logging
 from typing import Tuple
 
 from src.clients.github import GithubClient
-from src.repositories.cache import CacheRepository
+from src.repositories.cache import CacheRepository, CantSaveJsonError
+
+logger = logging.getLogger('okved_service')
+logging.basicConfig(level=logging.DEBUG)
 
 PHONE_NUMBER_LEN = 11
 
@@ -44,12 +48,12 @@ class OkvedService:
         self._github_client = github_client
         self._cache_repo = cache_repo
 
-    def get_okved(self, raw_phone_number: str) -> Tuple[str | bool, dict | bool, str]:
+    def get_okved(self, raw_phone_number: str) -> Tuple[str | None, dict | None, str]:
         error_message = ''
         normalized_phone, error_message = try_normalize_phone(raw_phone_number)
         if not normalized_phone:
             return normalized_phone, None, error_message
-        okved_code = self.get_okved_by_phone(phone=normalized_phone), error_message
+        okved_code = self.get_okved_by_phone(phone=normalized_phone)
         return normalized_phone, okved_code, error_message
 
     def get_okved_by_phone(self, phone: str) -> dict | None:
@@ -60,17 +64,32 @@ class OkvedService:
 
     def _get_actual_okved_codes(self) -> list[dict] | None:
         cached_json_etag = self._cache_repo.get_okved_json_etag_from_cache()
+        logger.info('Проверяем актуальность ОКВЭД в локальном кэше по etag...')
         new_etag = self._github_client.check_okved_json_etag(cached_etag=cached_json_etag)
 
         new_okved_codes = None
         if new_etag:
+            logger.info('Локальные ОКВЭД устарели, обновляем etag и ОКВЭД...')
+            self._cache_repo.save_okved_json_etag_to_cache(etag=new_etag)
             new_okved_codes = self._github_client.load_okved_json()
+        else:
+            logger.info('локальные ОКВЭД актуальны, используем их...')
 
         if new_okved_codes:
-            self._cache_repo.save_okved_codes_to_cache(new_okved_codes=new_okved_codes)
+            try:
+                self._cache_repo.save_okved_codes_to_cache(new_okved_codes=new_okved_codes)
+            except CantSaveJsonError:
+                logger.warning('Не удалось сохранить новые ОКВЭД в кэш;')
             return new_okved_codes
 
-        return self._cache_repo.get_okved_codes_from_cache()
+        okved_codes_from_cache = self._cache_repo.get_okved_codes_from_cache()
+
+        if not okved_codes_from_cache:
+            logger.warning('Не удалось загрузить ОКВЭД из кэша, загружаем их заново из реестра...')
+            new_okved_codes = self._github_client.load_okved_json()
+            self._cache_repo.save_okved_codes_to_cache(new_okved_codes=new_okved_codes)
+            return new_okved_codes
+        return okved_codes_from_cache
 
 
 def try_normalize_phone(raw_phone_number: str):
