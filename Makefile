@@ -1,5 +1,8 @@
 run:
-	python -m src
+	python -m src $(phone)
+
+help:
+	python -m src --help
 
 test:
 	python -m pytest
