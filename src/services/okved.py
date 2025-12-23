@@ -149,6 +149,8 @@ def _parse_raw_phone(raw_phone: str) -> Tuple[bool, str]:
         if char == '+' and not first_digit_found:
             plus_before_first_digit = True
         elif char.isdigit():
+            if not first_digit_found and char == '0':
+                continue
             digits.append(char)
             first_digit_found = True
 
