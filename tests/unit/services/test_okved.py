@@ -161,7 +161,7 @@ def test_find_matching_okved_code__no_matches__return_first_not_empty_code():
     okved_codes = [
         {
             'code': 'Раздел 1',
-            'items': [{'code': '81.23.77.70', 'name': 'Разведение гуппи Эндлера', 'items': []}],
+            'items': [{'code': '80.00.77.70', 'name': 'Разведение гуппи Эндлера', 'items': []}],
         },
         {
             'code': 'Раздел 2',
@@ -177,7 +177,7 @@ def test_find_matching_okved_code__no_matches__return_first_not_empty_code():
 
     matching_okved = find_matching_okved_code(phone=phone, okved_codes=okved_codes)
     assert matching_okved == {
-        'okved': '81.23.77.70',
+        'okved': '80.00.77.70',
         'matches_count': 0,
         'complete_match': False,
         'title': 'Разведение гуппи Эндлера',
