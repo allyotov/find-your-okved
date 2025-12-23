@@ -240,18 +240,13 @@ def _compare_code_with_phone(code: str, phone: str) -> Tuple[int, bool]:
     if not code:
         return 0, False
 
-    trailing_matches_count = 0
-
     code_len = len(code)
-    code_i = code_len - 1
-    phone_i = PHONE_NUMBER_LEN  # учитываем, что в начале номера всегда +
-
-    while code_i >= 0 and phone_i >= 0:
-        if code[code_i] == phone[phone_i]:
-            trailing_matches_count += 1
-            code_i -= 1
-            phone_i -= 1
-        else:
-            break
-    complete_match = code_len == trailing_matches_count
-    return trailing_matches_count, complete_match
+    phone_end = phone[-code_len:]
+    if code == phone_end:
+        return code_len, True
+    else:
+        trailing_matches_count = 0
+        for code_digit, phone_digit in zip(code, phone_end):
+            if code_digit == phone_digit:
+                trailing_matches_count += 1
+        return trailing_matches_count, False
