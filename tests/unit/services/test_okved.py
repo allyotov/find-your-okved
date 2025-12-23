@@ -5,6 +5,7 @@ from src.services.okved import (
     WrongCountryCodeError,
     WrongDigitsNumberError,
     WrongSecondDigitError,
+    _compare_code_with_phone,
     find_matching_okved_code,
     normalize_phone,
 )
@@ -156,13 +157,13 @@ def test_find_matching_okved_code__no_matches__return_first_not_empty_code():
     okved_codes = [
         {
             'code': 'Раздел 1',
-            'items': [{'code': '81.23.45.60', 'name': 'Разведение гуппи Эндлера', 'items': []}],
+            'items': [{'code': '81.23.77.70', 'name': 'Разведение гуппи Эндлера', 'items': []}],
         },
         {
             'code': 'Раздел 2',
             'items': [
                 {
-                    'code': '2.60',
+                    'code': '7.70',
                     'name': 'Разведение сомов анциструсов',
                     'items': [],
                 },
@@ -172,7 +173,7 @@ def test_find_matching_okved_code__no_matches__return_first_not_empty_code():
 
     matching_okved = find_matching_okved_code(phone=phone, okved_codes=okved_codes)
     assert matching_okved == {
-        'okved': '81.23.45.60',
+        'okved': '81.23.77.70',
         'matches_count': 0,
         'complete_match': False,
         'title': 'Разведение гуппи Эндлера',
@@ -199,3 +200,15 @@ def test_find_matching_okved_code__successfully_processes_nodes_with_no_nested_i
     ]
     result = find_matching_okved_code(phone=phone, okved_codes=okved_codes)
     assert result
+
+
+def test_compare_code_with_phone__middle_digits_match__return_matches_count_not_complete_match():
+    assert _compare_code_with_phone(phone='+79001234567', code='0560') == (2, False)
+
+
+def test_compare_code_with_phone__middle_digits_match_last_digits_differ__return_not_zero_matches_not_complete_match():
+    assert _compare_code_with_phone(phone='+79001234567', code='1234560') == (6, False)
+
+
+def test_compare_code_with_phone__all_code_digits_match__return_matches_count_complete_match():
+    assert _compare_code_with_phone(phone='+79001234567', code='1234567') == (7, True)
